@@ -65,14 +65,13 @@ int main()
         }
 
         if (alarm_activated) {
-            beep(BUZZER_PIN, 100);
+            printf("ALERTA DE INTRUSO!!!\n");
+            beep(BUZZER_PIN, 200);
             gpio_put(LED_PIN, 1);
-            sleep_ms(200);
+            sleep_ms(300);
             gpio_put(LED_PIN, 0);
-            sleep_ms(200);
+            sleep_ms(300);
         }
-        
-        printf("%u\n", peak);
     }
 }
 
