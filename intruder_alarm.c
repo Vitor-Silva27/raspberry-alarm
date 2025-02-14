@@ -7,6 +7,25 @@
 #define MIC_CHANNEL 2
 #define MIC_PIN 28
 
+#define SAMPLES 200
+
+uint16_t adc_buffer[SAMPLES];
+
+void sample_mic() {
+    for (uint i = 0; i < SAMPLES; i++) {
+        adc_buffer[i] = adc_read();
+    }
+}
+
+uint16_t get_peak() {
+    uint16_t max_value = 0;
+    for (uint i = 0; i < SAMPLES; i++) {
+        if (adc_buffer[i] > max_value) {
+            max_value = adc_buffer[i];
+        }
+    }
+    return max_value;
+}
 
 int main()
 {
@@ -22,11 +41,16 @@ int main()
 
 
     while (true) {
-        uint16_t noise = adc_read();
-        printf("%u\n", noise);
-        gpio_put(LED_PIN, 1);
-        sleep_ms(1000);
-        gpio_put(LED_PIN, 0);
-        sleep_ms(1000);
+        sample_mic();
+        int16_t peak = get_peak();
+        
+        if (peak > 2500) {
+            gpio_put(LED_PIN, 1);
+            sleep_ms(500);
+        } else {
+            gpio_put(LED_PIN, 0);
+        }
+        
+        printf("%u\n", peak);
     }
 }
