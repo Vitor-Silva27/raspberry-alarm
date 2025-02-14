@@ -10,6 +10,7 @@
 #define SAMPLES 200
 
 uint16_t adc_buffer[SAMPLES];
+bool led_state = false;
 
 void sample_mic() {
     for (uint i = 0; i < SAMPLES; i++) {
@@ -45,10 +46,9 @@ int main()
         int16_t peak = get_peak();
         
         if (peak > 2500) {
-            gpio_put(LED_PIN, 1);
+            led_state = !led_state;
+            gpio_put(LED_PIN, led_state);
             sleep_ms(500);
-        } else {
-            gpio_put(LED_PIN, 0);
         }
         
         printf("%u\n", peak);
