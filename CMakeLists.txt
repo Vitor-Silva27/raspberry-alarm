@@ -55,7 +55,7 @@ target_include_directories(intruder_alarm PRIVATE
 
 # Add any user requested libraries
 target_link_libraries(intruder_alarm 
-        
+        hardware_adc
         )
 
 pico_add_extra_outputs(intruder_alarm)
