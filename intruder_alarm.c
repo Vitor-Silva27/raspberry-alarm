@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
+#include "hardware/pwm.h"
+#include "hardware/clocks.h"
 
 /* definindo pinos do led e microfone */
 #define LED_PIN 13
@@ -8,21 +10,21 @@
 #define MIC_PIN 28
 
 #define SAMPLES 200
-#define MIN_NOISE 2500
+#define MIN_NOISE 2200
 
 #define BTN 5
 
-uint16_t adc_buffer[SAMPLES];
-bool led_state = false;
-bool led_blinking = false;
+#define BUZZER_PIN 21
+#define BUZZER_FREQUENCY 1000
 
-/* prototipos de funcção */
+uint16_t adc_buffer[SAMPLES];
+bool alarm_activated = false;
+
+/* prototipos de função */
 void sample_mic();
 uint16_t get_peak();
-
-void disableAlarmIRQ(){
-    led_blinking = false;
-}
+void disableAlarmIRQ();
+void beep(uint pin, uint duration_ms);
 
 int main()
 {
@@ -40,6 +42,17 @@ int main()
     gpio_set_dir(BTN, 0);
     gpio_pull_up(BTN);
 
+    gpio_set_function(BUZZER_PIN, GPIO_FUNC_PWM);
+
+    uint slice_num = pwm_gpio_to_slice_num(BUZZER_PIN);
+
+    /* Configurar o PWM para o buzer */
+    pwm_config config = pwm_get_default_config();
+    pwm_config_set_clkdiv(&config, clock_get_hz(clk_sys) / (BUZZER_FREQUENCY * 4096));
+    pwm_init(slice_num, &config, true);
+    pwm_set_gpio_level(BUZZER_PIN, 0);
+
+    /* configurando interrupção para parar o alarme */
     gpio_set_irq_enabled_with_callback(BTN, GPIO_IRQ_EDGE_RISE, true, &disableAlarmIRQ);
 
 
@@ -48,10 +61,11 @@ int main()
         int16_t peak = get_peak();
         
         if (peak > MIN_NOISE) {
-            led_blinking = true;
+            alarm_activated = true;
         }
 
-        if (led_blinking) {
+        if (alarm_activated) {
+            beep(BUZZER_PIN, 100);
             gpio_put(LED_PIN, 1);
             sleep_ms(200);
             gpio_put(LED_PIN, 0);
@@ -79,4 +93,20 @@ uint16_t get_peak() {
         }
     }
     return max_value;
+}
+
+void disableAlarmIRQ(){
+    alarm_activated = false;
+}
+
+void beep(uint pin, uint duration_ms) {
+    // Obter o slice do PWM associado ao pino
+    uint slice_num = pwm_gpio_to_slice_num(pin);
+
+    pwm_set_gpio_level(pin, 2048);
+    sleep_ms(duration_ms);
+    pwm_set_gpio_level(pin, 0);
+
+    // Pausa entre os beeps
+    sleep_ms(100);
 }
