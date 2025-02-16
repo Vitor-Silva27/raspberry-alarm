@@ -6,11 +6,12 @@
 
 /* definindo pinos do led e microfone */
 #define LED_PIN 13
+#define BLUE_LED_PIN 12
 #define MIC_CHANNEL 2
 #define MIC_PIN 28
 
 #define SAMPLES 200
-#define MIN_NOISE 2200
+#define MIN_NOISE 2500
 
 #define BTN 5
 
@@ -18,7 +19,7 @@
 #define BUZZER_FREQUENCY 1000
 
 uint16_t adc_buffer[SAMPLES];
-bool alarm_activated = false;
+volatile bool alarm_activated = false;
 
 /* prototipos de função */
 void sample_mic();
@@ -34,12 +35,15 @@ int main()
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
 
+    gpio_init(BLUE_LED_PIN);
+    gpio_set_dir(BLUE_LED_PIN, GPIO_OUT);
+
     adc_gpio_init(MIC_PIN);
     adc_init();
     adc_select_input(MIC_CHANNEL);
 
     gpio_init(BTN);
-    gpio_set_dir(BTN, 0);
+    gpio_set_dir(BTN, GPIO_IN);
     gpio_pull_up(BTN);
 
     gpio_set_function(BUZZER_PIN, GPIO_FUNC_PWM);
@@ -58,7 +62,7 @@ int main()
 
     while (true) {
         sample_mic();
-        int16_t peak = get_peak();
+        uint16_t peak = get_peak();
         
         if (peak > MIN_NOISE) {
             alarm_activated = true;
@@ -66,11 +70,14 @@ int main()
 
         if (alarm_activated) {
             printf("ALERTA DE INTRUSO!!!\n");
+            gpio_put(BLUE_LED_PIN, 0);
             beep(BUZZER_PIN, 200);
             gpio_put(LED_PIN, 1);
             sleep_ms(300);
             gpio_put(LED_PIN, 0);
             sleep_ms(300);
+        } else {
+            gpio_put(BLUE_LED_PIN, 1);
         }
     }
 }
